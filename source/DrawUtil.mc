@@ -124,16 +124,4 @@ module DrawUtil {
     function formatNumber(value as Number or Null) as String {
         return value == null ? "--" : value.format("%d");
     }
-
-    function formatTimeOfDay() as String {
-        var t = System.getClockTime();
-        var hour = t.hour;
-        if (!System.getDeviceSettings().is24Hour) {
-            hour = hour % 12;
-            if (hour == 0) {
-                hour = 12;
-            }
-        }
-        return hour.format("%d") + ":" + t.min.format("%02d");
-    }
 }

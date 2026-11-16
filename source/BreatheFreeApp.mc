@@ -24,8 +24,7 @@ class BreatheFreeApp extends Application.AppBase {
     }
 
     function getInitialView() {
-        var view = new DataView();
-        return [view, new DataDelegate(view)];
+        return [new DataView(), new DataDelegate()];
     }
 
     //! Settings changed from the Garmin Connect / Connect IQ phone app.

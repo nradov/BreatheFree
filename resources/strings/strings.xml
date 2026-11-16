@@ -17,13 +17,10 @@
     <string id="LabelHr">HR</string>
     <string id="LabelStress">STRESS</string>
     <string id="LabelLapTime">LAP TIME</string>
-    <string id="LabelLapBreaths">LAP BREATHS</string>
     <string id="LabelAvgResp">AVG RESP</string>
-    <string id="LabelTimeOfDay">TIME OF DAY</string>
     <string id="LabelStopped">STOPPED</string>
     <string id="LabelLap">LAP</string>
     <string id="LabelTotalTime">TOTAL TIME</string>
-    <string id="LabelZone">ZONE</string>
 
     <!-- Pre-start screen -->
     <string id="HintStart">Press START</string>

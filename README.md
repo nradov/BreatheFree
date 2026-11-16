@@ -9,9 +9,7 @@ Built for the **Garmin Descent Mk2**, and it runs on about 115 other Garmin watc
 ## Features
 
 - Screens styled like the built-in activity profiles: black background, four data fields, thin grey separator lines and small upper-case labels.
-- **Page 1:** Timer · Breaths · Resp Rate · HR · Stress. HR is colored by your HR zone. Stress is the watch's current stress score (`ActivityMonitor.Info.stressScore`, 0–100, API 5.0.0+), colored by Garmin's rest/low/medium/high bands, and shows `--` on watches without it.
-- **Page 2:** heart rate gauge, like the built-in Breathwork and Strength profiles. A zone-colored arc runs around the bezel with a pointer at your current heart rate, and the center shows Timer, Heart Rate with its fractional zone (e.g. ZONE 2.4), and Resp Rate.
-- **Page 3:** Lap Time · Lap Breaths · Avg Resp · Time of Day.
+- **One data screen:** Timer · Breaths · Resp Rate · HR · Stress. Stress is the watch's current stress score (`ActivityMonitor.Info.stressScore`, 0–100, API 5.0.0+), colored by Garmin's rest/low/medium/high bands, and shows `--` on watches without it.
 - **Laps:** BACK/LAP records a new lap. As on the built-in profiles, a lap banner shows the lap number with the last lap time and the total time, along with a tone and vibration.
 - **Stop menu:** Resume / Save / Discard, like the built-in apps. Discard asks for confirmation.
 - **Summary** after saving: time, breaths, avg resp rate, avg/max HR and laps.
@@ -32,7 +30,6 @@ Built for the **Garmin Descent Mk2**, and it runs on about 115 other Garmin watc
 |---|---|---|---|
 | START/STOP | Start | Stop and open the menu | Resume |
 | BACK/LAP | Exit app | **New lap** | Open the menu |
-| UP / DOWN | – | Change data page | Change data page |
 | Hold MENU | Settings | – | – |
 
 On touch watches, screen taps and swipe-right are ignored during an activity so it can't be ended by accident. Use the buttons instead.

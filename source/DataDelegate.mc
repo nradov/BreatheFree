@@ -6,14 +6,10 @@ import Toybox.WatchUi;
 //! activity profiles:
 //!   START/STOP  start the timer / stop it and open the Resume-Save-Discard menu
 //!   BACK/LAP    record a lap while the timer runs (exit before start)
-//!   UP/DOWN     scroll data pages
 //!   hold MENU   settings (before start)
 class DataDelegate extends WatchUi.BehaviorDelegate {
-    private var _view as DataView;
-
-    function initialize(view as DataView) {
+    function initialize() {
         BehaviorDelegate.initialize();
-        _view = view;
     }
 
     function onKey(keyEvent as WatchUi.KeyEvent) as Boolean {
@@ -93,20 +89,6 @@ class DataDelegate extends WatchUi.BehaviorDelegate {
     function onMenu() as Boolean {
         if (getModel().state == STATE_READY) {
             SettingsMenu.show();
-        }
-        return true;
-    }
-
-    function onNextPage() as Boolean {
-        if (getModel().state != STATE_READY) {
-            _view.changePage(1);
-        }
-        return true;
-    }
-
-    function onPreviousPage() as Boolean {
-        if (getModel().state != STATE_READY) {
-            _view.changePage(-1);
         }
         return true;
     }
