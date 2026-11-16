@@ -1,0 +1,8 @@
+<settings>
+    <setting propertyKey="@Properties.activityType" title="@Strings.SettingActivityType">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.TypeBreathwork</listEntry>
+            <listEntry value="1">@Strings.TypeStrength</listEntry>
+        </settingConfig>
+    </setting>
+</settings>

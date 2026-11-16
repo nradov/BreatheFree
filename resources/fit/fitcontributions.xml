@@ -1,0 +1,17 @@
+<!-- Field ids must match the ids passed to createField() in ActivityModel.mc -->
+<fitContributions>
+    <!-- Per-second record: graphed in Garmin Connect -->
+    <fitField id="0" displayInChart="true" sortOrder="0" precision="1"
+        chartTitle="@Strings.FitRateChart" dataLabel="@Strings.FitRateLabel"
+        unitLabel="@Strings.UnitBrpm" fillColor="#2EA3F2" />
+    <!-- Session totals: shown in the activity summary -->
+    <fitField id="1" displayInActivitySummary="true" sortOrder="1" precision="0"
+        dataLabel="@Strings.FitBreathsLabel" unitLabel="@Strings.UnitBreaths" />
+    <fitField id="2" displayInActivitySummary="true" sortOrder="2" precision="1"
+        dataLabel="@Strings.FitAvgRateLabel" unitLabel="@Strings.UnitBrpm" />
+    <!-- Per lap: shown in the Laps table -->
+    <fitField id="3" displayInActivityLaps="true" sortOrder="3" precision="0"
+        dataLabel="@Strings.FitLapBreathsLabel" unitLabel="@Strings.UnitBreaths" />
+    <fitField id="4" displayInActivityLaps="true" sortOrder="4" precision="1"
+        dataLabel="@Strings.FitLapRateLabel" unitLabel="@Strings.UnitBrpm" />
+</fitContributions>

@@ -1,0 +1,4 @@
+<properties>
+    <!-- 0 = Breathwork (default), 1 = Strength Training -->
+    <property id="activityType" type="number">0</property>
+</properties>

@@ -1,0 +1,55 @@
+<strings>
+    <string id="AppName">BreatheFree</string>
+
+    <!-- Activity types (also used as the activity name in Garmin Connect) -->
+    <string id="TypeBreathwork">Breathwork</string>
+    <string id="TypeStrength">Strength Training</string>
+
+    <!-- Data field labels (upper case to match the built-in data screens) -->
+    <string id="LabelTimer">TIMER</string>
+    <string id="LabelBreaths">BREATHS</string>
+    <string id="LabelRespRate">RESP RATE</string>
+    <string id="LabelHeartRate">HEART RATE</string>
+    <string id="LabelHr">HR</string>
+    <string id="LabelStress">STRESS</string>
+    <string id="LabelLapTime">LAP TIME</string>
+    <string id="LabelLapBreaths">LAP BREATHS</string>
+    <string id="LabelAvgResp">AVG RESP</string>
+    <string id="LabelTimeOfDay">TIME OF DAY</string>
+    <string id="LabelStopped">STOPPED</string>
+    <string id="LabelLap">LAP</string>
+
+    <!-- Pre-start screen -->
+    <string id="HintStart">Press START</string>
+    <string id="HintSettings">Hold MENU for settings</string>
+    <string id="HintNoHr">Finding heart rate</string>
+
+    <!-- Pause menu -->
+    <string id="MenuResume">Resume</string>
+    <string id="MenuSave">Save</string>
+    <string id="MenuDiscard">Discard</string>
+    <string id="ConfirmDiscard">Discard activity?</string>
+
+    <!-- Settings -->
+    <string id="SettingsTitle">Settings</string>
+    <string id="SettingActivityType">Activity Type</string>
+
+    <!-- Summary -->
+    <string id="SummarySaved">Activity Saved</string>
+    <string id="SummaryTime">Time</string>
+    <string id="SummaryBreaths">Breaths</string>
+    <string id="SummaryAvgResp">Avg Resp</string>
+    <string id="SummaryAvgHr">Avg HR</string>
+    <string id="SummaryMaxHr">Max HR</string>
+    <string id="SummaryLaps">Laps</string>
+
+    <!-- Garmin Connect (FIT developer field) labels -->
+    <string id="FitRateChart">Respiration Rate</string>
+    <string id="FitRateLabel">Respiration Rate</string>
+    <string id="FitBreathsLabel">Total Breaths</string>
+    <string id="FitAvgRateLabel">Avg Respiration Rate</string>
+    <string id="FitLapBreathsLabel">Breaths</string>
+    <string id="FitLapRateLabel">Avg Resp Rate</string>
+    <string id="UnitBrpm">brpm</string>
+    <string id="UnitBreaths">breaths</string>
+</strings>
