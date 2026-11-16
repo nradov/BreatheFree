@@ -43,7 +43,7 @@ class StopMenuTitle extends WatchUi.Drawable {
         var w = dc.getWidth();
         var h = dc.getHeight();
         var cx = w / 2;
-        var index = (System.getTimer() / ROTATE_MS) % _labels.size();
+        var index = DrawUtil.phase(ROTATE_MS, _labels.size());
 
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.fillRectangle(0, 0, w, h);

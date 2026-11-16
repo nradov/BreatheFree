@@ -97,6 +97,7 @@ class ActivityModel {
 
     function initialize() {
         _detector = new BreathDetector();
+        lapAlertUntil = System.getTimer();  // already expired
         activityType = readActivityType();
     }
 

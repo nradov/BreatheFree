@@ -19,6 +19,21 @@ module DrawUtil {
         Graphics.FONT_TINY
     ];
 
+    // System.getTimer() counts milliseconds since the watch booted in a
+    // 32-bit signed integer, so it turns negative after about 24.8 days of
+    // uptime. These helpers stay correct when that happens.
+
+    //! (timer / periodMs) mod n, never negative. For blinking and rotating.
+    function phase(periodMs as Number, n as Number) as Number {
+        var p = (System.getTimer() / periodMs) % n;
+        return p < 0 ? p + n : p;
+    }
+
+    //! True until a deadline computed as System.getTimer() + duration.
+    function before(deadline as Number) as Boolean {
+        return deadline - System.getTimer() > 0;
+    }
+
     function isRound() as Boolean {
         return System.getDeviceSettings().screenShape != System.SCREEN_SHAPE_RECTANGLE;
     }

@@ -21,6 +21,7 @@ class DataView extends WatchUi.View {
 
     function initialize() {
         View.initialize();
+        _pageIndicatorUntil = System.getTimer();  // already expired
     }
 
     function onLayout(dc as Graphics.Dc) as Void {
@@ -72,7 +73,7 @@ class DataView extends WatchUi.View {
         var m = getModel();
         if (m.state == STATE_READY) {
             drawReady(dc, m);
-        } else if (System.getTimer() < m.lapAlertUntil) {
+        } else if (DrawUtil.before(m.lapAlertUntil)) {
             drawLapAlert(dc, m);
         } else if (_page == PAGE_GAUGE) {
             drawGaugePage(dc, m);
@@ -93,7 +94,7 @@ class DataView extends WatchUi.View {
 
         // Sensor status ring: grey and pulsing while searching, green when
         // heart rate is found (like the GPS ring of the built-in apps).
-        var pulse = (System.getTimer() / 1000) % 2 == 0;
+        var pulse = DrawUtil.phase(1000, 2) == 0;
         var ringColor = hrOk ? Graphics.COLOR_GREEN : (pulse ? Graphics.COLOR_DK_GRAY : Graphics.COLOR_LT_GRAY);
         dc.setColor(ringColor, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(6);
@@ -135,7 +136,7 @@ class DataView extends WatchUi.View {
         var h = dc.getHeight();
         var cx = w / 2;
         var paused = m.state != STATE_RECORDING;
-        var blinkOff = paused && (System.getTimer() / 1000) % 2 == 1;
+        var blinkOff = paused && DrawUtil.phase(1000, 2) == 1;
 
         var topLabel;
         var topValue;
@@ -227,7 +228,7 @@ class DataView extends WatchUi.View {
                 [y2 + 2, botBandBottom], DrawUtil.widthAt(dc, botBandBottom) - 12, grey, white);
         }
 
-        if (System.getTimer() < _pageIndicatorUntil) {
+        if (DrawUtil.before(_pageIndicatorUntil)) {
             drawPageIndicator(dc);
         }
     }
@@ -361,7 +362,7 @@ class DataView extends WatchUi.View {
         // Timer at the top (STOPPED + flashing while stopped)
         var timerLabel = paused ? label(:stopped) : label(:timer);
         var timerValue = DrawUtil.formatDuration(m.timerMs());
-        if (paused && (System.getTimer() / 1000) % 2 == 1) {
+        if (paused && DrawUtil.phase(1000, 2) == 1) {
             timerValue = "";
         }
         var tTop = (h * 0.24).toNumber();
@@ -383,7 +384,7 @@ class DataView extends WatchUi.View {
         DrawUtil.drawField(dc, cx, label(:resp), (h * 0.9).toNumber(), DrawUtil.formatRate(m.respRate),
             [(h * 0.72).toNumber(), bBottom], DrawUtil.widthAt(dc, bBottom) - 2 * pen - 12, grey, white);
 
-        if (System.getTimer() < _pageIndicatorUntil) {
+        if (DrawUtil.before(_pageIndicatorUntil)) {
             drawPageIndicator(dc);
         }
     }
