@@ -49,8 +49,14 @@ function readActivityType() as Number {
     return (value != null && value == TYPE_STRENGTH) ? TYPE_STRENGTH : TYPE_BREATHWORK;
 }
 
+//! Setting label: "Breathwork" or "Strength Training".
 function activityTypeName(type as Number) as String {
     return WatchUi.loadResource(type == TYPE_STRENGTH ? Rez.Strings.TypeStrength : Rez.Strings.TypeBreathwork) as String;
+}
+
+//! Activity name, matching the built-in profiles: "Breathwork" or "Strength".
+function activitySessionName(type as Number) as String {
+    return WatchUi.loadResource(type == TYPE_STRENGTH ? Rez.Strings.NameStrength : Rez.Strings.TypeBreathwork) as String;
 }
 
 //! Owns the recording session, sensors and all live metrics.
@@ -71,7 +77,7 @@ class ActivityModel {
     var lapAlertUntil as Number = 0;
     var lapAlertNumber as Number = 0;
     var lapAlertTimeMs as Number = 0;
-    var lapAlertBreaths as Number = 0;
+    var lapAlertTotalMs as Number = 0;
 
     // Captured when the activity is saved
     var summary as Dictionary or Null = null;
@@ -275,7 +281,7 @@ class ActivityModel {
             activityType = readActivityType();
             var strength = activityType == TYPE_STRENGTH;
             session = ActivityRecording.createSession({
-                :name => activityTypeName(activityType),
+                :name => activitySessionName(activityType),
                 :sport => FIT_SPORT_TRAINING as Activity.Sport,
                 :subSport => (strength ? FIT_SUB_SPORT_STRENGTH_TRAINING : FIT_SUB_SPORT_BREATHING) as Activity.SubSport
             });
@@ -317,7 +323,7 @@ class ActivityModel {
 
         lapAlertNumber = lapNumber;
         lapAlertTimeMs = now - lapStartMs;
-        lapAlertBreaths = lapBreathCount();
+        lapAlertTotalMs = now;
         lapAlertUntil = System.getTimer() + LAP_ALERT_MS;
 
         lapNumber += 1;
@@ -334,7 +340,7 @@ class ActivityModel {
         updateFitFields();
         var info = Activity.getActivityInfo();
         summary = {
-            :name => activityTypeName(activityType),
+            :name => activitySessionName(activityType),
             :timeMs => timerMs(),
             :breaths => breathCount(),
             :avgRate => averageRespRate(),

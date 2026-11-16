@@ -4,6 +4,8 @@
     <!-- Activity types (also used as the activity name in Garmin Connect) -->
     <string id="TypeBreathwork">Breathwork</string>
     <string id="TypeStrength">Strength Training</string>
+    <!-- Activity name, same as the built-in Strength profile -->
+    <string id="NameStrength">Strength</string>
 
     <!-- Data field labels (upper case to match the built-in data screens) -->
     <string id="LabelTimer">TIMER</string>
@@ -20,6 +22,8 @@
     <string id="LabelTimeOfDay">TIME OF DAY</string>
     <string id="LabelStopped">STOPPED</string>
     <string id="LabelLap">LAP</string>
+    <string id="LabelTotalTime">TOTAL TIME</string>
+    <string id="LabelZone">ZONE</string>
 
     <!-- Pre-start screen -->
     <string id="HintStart">Press START</string>

@@ -1,5 +1,6 @@
 import Toybox.Graphics;
 import Toybox.Lang;
+import Toybox.Math;
 import Toybox.System;
 import Toybox.UserProfile;
 import Toybox.WatchUi;
@@ -8,12 +9,15 @@ import Toybox.WatchUi;
 //! Styled after the built-in activity profiles: black background, four
 //! fields separated by thin grey lines, small upper-case labels.
 class DataView extends WatchUi.View {
-    const PAGE_COUNT = 2;
+    // Pages: 0 main fields, 1 heart rate gauge, 2 lap / time of day.
+    const PAGE_COUNT = 3;
+    const PAGE_GAUGE = 1;
     const PAGE_INDICATOR_MS = 2000;
 
     private var _page as Number = 0;
     private var _pageIndicatorUntil as Number = 0;
     private var _s as Dictionary<Symbol, String> = {} as Dictionary<Symbol, String>;
+    private var _zones as Array<Number> or Null = null;
 
     function initialize() {
         View.initialize();
@@ -35,8 +39,16 @@ class DataView extends WatchUi.View {
             :lap => str(Rez.Strings.LabelLap),
             :start => str(Rez.Strings.HintStart),
             :settings => str(Rez.Strings.HintSettings),
-            :noHr => str(Rez.Strings.HintNoHr)
+            :noHr => str(Rez.Strings.HintNoHr),
+            :totalTime => str(Rez.Strings.LabelTotalTime),
+            :zone => str(Rez.Strings.LabelZone)
         };
+        try {
+            var zones = UserProfile.getHeartRateZones(UserProfile.getCurrentSport());
+            _zones = (zones != null && zones.size() >= 6) ? zones : null;
+        } catch (e) {
+            _zones = null;
+        }
     }
 
     private function str(id as ResourceId) as String {
@@ -62,6 +74,8 @@ class DataView extends WatchUi.View {
             drawReady(dc, m);
         } else if (System.getTimer() < m.lapAlertUntil) {
             drawLapAlert(dc, m);
+        } else if (_page == PAGE_GAUGE) {
+            drawGaugePage(dc, m);
         } else {
             drawDataPage(dc, m);
         }
@@ -91,7 +105,7 @@ class DataView extends WatchUi.View {
         dc.setPenWidth(1);
 
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, (h * 0.24).toNumber(), Graphics.FONT_MEDIUM, activityTypeName(m.activityType),
+        dc.drawText(cx, (h * 0.24).toNumber(), Graphics.FONT_MEDIUM, activitySessionName(m.activityType),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
         var hrText = hrOk ? DrawUtil.formatNumber(m.heartRate) : "--";
@@ -218,34 +232,160 @@ class DataView extends WatchUi.View {
         }
     }
 
-    //! Heart rate value colored by the user's heart rate zones, like the
-    //! built-in heart rate gauge. White if zones are unavailable.
-    private function hrZoneColor(hr as Number) as Graphics.ColorType {
-        var zones = null;
-        try {
-            zones = UserProfile.getHeartRateZones(UserProfile.getCurrentSport());
-        } catch (e) {
-            zones = null;
-        }
-        if (zones == null || zones.size() < 6) {
-            return Graphics.COLOR_WHITE;
-        }
+    // Garmin heart rate zone colors, zones 1-5.
+    private function zoneColor(zone as Number) as Graphics.ColorType {
         var colors = [
-            Graphics.COLOR_LT_GRAY,  // zone 1
-            Graphics.COLOR_BLUE,     // zone 2
-            Graphics.COLOR_GREEN,    // zone 3
-            Graphics.COLOR_ORANGE,   // zone 4
-            Graphics.COLOR_RED       // zone 5
+            Graphics.COLOR_LT_GRAY,
+            Graphics.COLOR_BLUE,
+            Graphics.COLOR_GREEN,
+            Graphics.COLOR_ORANGE,
+            Graphics.COLOR_RED
         ];
+        if (zone < 1) {
+            zone = 1;
+        } else if (zone > 5) {
+            zone = 5;
+        }
+        return colors[zone - 1] as Graphics.ColorType;
+    }
+
+    //! Heart rate as a fractional zone like the built-in gauge shows it
+    //! (e.g. 2.4 = 40% of the way through zone 2), clamped to 1.0-5.9.
+    //! Null if the user's zones are unavailable.
+    private function zoneValue(hr as Number) as Float or Null {
+        var zones = _zones;
+        if (zones == null) {
+            return null;
+        }
         if (hr < zones[0]) {
-            return Graphics.COLOR_WHITE;
+            return 1.0;
         }
         for (var i = 1; i < 6; i++) {
             if (hr <= zones[i]) {
-                return colors[i - 1] as Graphics.ColorType;
+                var lo = zones[i - 1];
+                var span = zones[i] - lo;
+                var frac = span > 0 ? (hr - lo).toFloat() / span : 0.0;
+                if (frac > 0.9) {
+                    frac = 0.9;
+                }
+                return i + frac;
             }
         }
-        return Graphics.COLOR_RED;
+        return 5.9;
+    }
+
+    //! Heart rate value colored by zone; white if zones are unavailable.
+    private function hrZoneColor(hr as Number) as Graphics.ColorType {
+        var z = zoneValue(hr);
+        if (z == null || (_zones != null && hr < (_zones as Array<Number>)[0])) {
+            return Graphics.COLOR_WHITE;
+        }
+        return zoneColor(z.toNumber());
+    }
+
+    // ------------------------------------------------------------------
+    // Heart rate gauge page: zone-colored arc around the bezel with a
+    // pointer, as on the built-in Breathwork and Strength profiles.
+    // ------------------------------------------------------------------
+
+    const GAUGE_START = 210;  // degrees, 0 = 3 o'clock, counter-clockwise
+    const GAUGE_SWEEP = 240;
+
+    private function norm(deg as Number) as Number {
+        return ((deg % 360) + 360) % 360;
+    }
+
+    private function drawGaugePage(dc as Graphics.Dc, m as ActivityModel) as Void {
+        var w = dc.getWidth();
+        var h = dc.getHeight();
+        var cx = w / 2;
+        var cy = h / 2;
+        var round = DrawUtil.isRound();
+        var pen = (w * 0.045).toNumber();
+        if (pen < 4) {
+            pen = 4;
+        }
+        var r = cx - pen / 2 - 1;
+        var seg = GAUGE_SWEEP / 5;
+
+        // Zone segments
+        dc.setPenWidth(pen);
+        for (var i = 0; i < 5; i++) {
+            dc.setColor(zoneColor(i + 1), Graphics.COLOR_TRANSPARENT);
+            if (round) {
+                var a0 = GAUGE_START - i * seg - 1;
+                var a1 = GAUGE_START - (i + 1) * seg + 1;
+                dc.drawArc(cx, cy, r, Graphics.ARC_CLOCKWISE, norm(a0), norm(a1));
+            } else {
+                var x0 = 8 + i * (w - 16) / 5 + 1;
+                var x1 = 8 + (i + 1) * (w - 16) / 5 - 1;
+                dc.drawLine(x0, pen, x1, pen);
+            }
+        }
+        dc.setPenWidth(1);
+
+        var hr = m.heartRate;
+        var hrOk = m.hasHeartRate();
+        var zone = hrOk ? zoneValue(hr as Number) : null;
+
+        // Pointer
+        if (zone != null) {
+            var frac = (zone - 1.0) / 5.0;
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            var size = pen + 4;
+            if (round) {
+                var a = Math.toRadians(GAUGE_START - frac * GAUGE_SWEEP);
+                var tipR = r - pen / 2 - 2;
+                var baseR = tipR - size;
+                var perp = a + Math.PI / 2;
+                var bx = cx + baseR * Math.cos(a);
+                var by = cy - baseR * Math.sin(a);
+                var half = size * 0.6;
+                dc.fillPolygon([
+                    [(cx + tipR * Math.cos(a)).toNumber(), (cy - tipR * Math.sin(a)).toNumber()],
+                    [(bx + half * Math.cos(perp)).toNumber(), (by - half * Math.sin(perp)).toNumber()],
+                    [(bx - half * Math.cos(perp)).toNumber(), (by + half * Math.sin(perp)).toNumber()]
+                ]);
+            } else {
+                var px = (8 + frac * (w - 16)).toNumber();
+                var tipY = pen + pen / 2 + 2;
+                dc.fillPolygon([[px, tipY], [px - size / 2, tipY + size], [px + size / 2, tipY + size]]);
+            }
+        }
+
+        var justify = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
+        var paused = m.state != STATE_RECORDING;
+        var white = Graphics.COLOR_WHITE;
+        var grey = Graphics.COLOR_LT_GRAY;
+
+        // Timer at the top (STOPPED + flashing while stopped)
+        var timerLabel = paused ? label(:stopped) : label(:timer);
+        var timerValue = DrawUtil.formatDuration(m.timerMs());
+        if (paused && (System.getTimer() / 1000) % 2 == 1) {
+            timerValue = "";
+        }
+        var tTop = (h * 0.24).toNumber();
+        DrawUtil.drawField(dc, cx, timerLabel, (h * 0.19).toNumber(), timerValue,
+            [tTop, (h * 0.38).toNumber()], DrawUtil.widthAt(dc, tTop) - 2 * pen - 12,
+            paused ? Graphics.COLOR_RED : grey, white);
+
+        // Heart rate, large, with the fractional zone underneath
+        var hrText = hrOk ? DrawUtil.formatNumber(hr) : "--";
+        var hrFont = DrawUtil.fitFont(dc, hrText, (w * 0.5).toNumber(), (h * 0.26).toNumber());
+        dc.setColor(hrOk ? hrZoneColor(hr as Number) : white, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, (h * 0.53).toNumber(), hrFont, hrText, justify);
+        dc.setColor(grey, Graphics.COLOR_TRANSPARENT);
+        var zoneText = zone != null ? label(:zone) + " " + zone.format("%.1f") : label(:hr);
+        dc.drawText(cx, (h * 0.68).toNumber(), Graphics.FONT_XTINY, zoneText, justify);
+
+        // Respiration rate at the bottom
+        var bBottom = (h * 0.86).toNumber();
+        DrawUtil.drawField(dc, cx, label(:resp), (h * 0.9).toNumber(), DrawUtil.formatRate(m.respRate),
+            [(h * 0.72).toNumber(), bBottom], DrawUtil.widthAt(dc, bBottom) - 2 * pen - 12, grey, white);
+
+        if (System.getTimer() < _pageIndicatorUntil) {
+            drawPageIndicator(dc);
+        }
     }
 
     //! Stress colored by Garmin's bands: 0-25 rest, 26-50 low,
@@ -282,22 +422,35 @@ class DataView extends WatchUi.View {
     // Lap banner
     // ------------------------------------------------------------------
 
+    //! Like the built-in lap banner: lap number, then the last lap time
+    //! and the total time.
     private function drawLapAlert(dc as Graphics.Dc, m as ActivityModel) as Void {
         var w = dc.getWidth();
         var h = dc.getHeight();
         var cx = w / 2;
         var justify = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
+        var white = Graphics.COLOR_WHITE;
+        var grey = Graphics.COLOR_LT_GRAY;
 
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, (h * 0.24).toNumber(), Graphics.FONT_MEDIUM,
+        dc.setColor(white, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, (h * 0.15).toNumber(), Graphics.FONT_SMALL,
             label(:lap) + " " + m.lapAlertNumber.format("%d"), justify);
 
-        var time = DrawUtil.formatDuration(m.lapAlertTimeMs);
-        var font = DrawUtil.fitFont(dc, time, w - 40, (h * 0.26).toNumber());
-        dc.drawText(cx, (h * 0.48).toNumber(), font, time, justify);
+        var y1 = (h * 0.24).toNumber();
+        var mid = (h * 0.58).toNumber();
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(2);
+        dc.drawLine(0, y1, w, y1);
+        dc.drawLine(0, mid, w, mid);
+        dc.setPenWidth(1);
 
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, (h * 0.72).toNumber(), Graphics.FONT_SMALL,
-            m.lapAlertBreaths.format("%d") + " " + label(:breaths), justify);
+        DrawUtil.drawField(dc, cx, label(:lapTime), y1 + (h * 0.05).toNumber(),
+            DrawUtil.formatDuration(m.lapAlertTimeMs),
+            [y1 + (h * 0.09).toNumber(), mid - 2], DrawUtil.widthAt(dc, y1) - 20, grey, white);
+
+        var bottom = (h * 0.86).toNumber();
+        DrawUtil.drawField(dc, cx, label(:totalTime), (h * 0.9).toNumber(),
+            DrawUtil.formatDuration(m.lapAlertTotalMs),
+            [mid + 2, bottom], DrawUtil.widthAt(dc, bottom) - 20, grey, white);
     }
 }
