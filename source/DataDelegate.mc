@@ -54,7 +54,8 @@ class DataDelegate extends WatchUi.BehaviorDelegate {
     }
 
     private function showPauseMenu() as Void {
-        var menu = new WatchUi.Menu2({ :title => WatchUi.loadResource(Rez.Strings.LabelStopped) as String });
+        // The title rotates through activity metrics like the built-in profiles.
+        var menu = new WatchUi.Menu2({ :title => new StopMenuTitle() });
         menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.MenuResume) as String, null, :resume, null));
         menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.MenuSave) as String, null, :save, null));
         menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.MenuDiscard) as String, null, :discard, null));

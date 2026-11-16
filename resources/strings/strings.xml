@@ -7,6 +7,8 @@
 
     <!-- Data field labels (upper case to match the built-in data screens) -->
     <string id="LabelTimer">TIMER</string>
+    <string id="LabelTime">TIME</string>
+    <string id="LabelCalories">TOTAL CALORIES</string>
     <string id="LabelBreaths">BREATHS</string>
     <string id="LabelRespRate">RESP RATE</string>
     <string id="LabelHeartRate">HEART RATE</string>
