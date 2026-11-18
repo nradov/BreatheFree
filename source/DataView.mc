@@ -62,7 +62,6 @@ class DataView extends WatchUi.View {
         var w = dc.getWidth();
         var h = dc.getHeight();
         var cx = w / 2;
-        var justify = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
 
         // Banner: black band across the top with a straight lower edge.
         // Proportions are measured from the built-in Cardio start screen
