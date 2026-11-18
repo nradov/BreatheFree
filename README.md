@@ -8,7 +8,7 @@ Built for the **Garmin Descent Mk2**, and it runs on about 115 other Garmin watc
 
 ## Features
 
-- Screens styled like the built-in activity profiles: black background, four data fields, thin grey separator lines and small upper-case labels.
+- Data screens styled like the built-in Cardio profile: white background, black labels and values, orange separator lines, small upper-case labels.
 - **One data screen:** Timer · Resp Rate · HR · Stress. Stress is the watch's current stress score (`ActivityMonitor.Info.stressScore`, 0–100, API 5.0.0+), colored by Garmin's rest/low/medium/high bands, and shows `--` on watches without it.
 - **Laps:** BACK/LAP records a new lap. As on the built-in profiles, a lap banner shows the lap number with the last lap time and the total time, along with a tone and vibration.
 - **Stop menu:** Resume / Save / Discard, like the built-in apps. Discard asks for confirmation.

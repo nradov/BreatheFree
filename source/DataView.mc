@@ -4,9 +4,17 @@ import Toybox.System;
 import Toybox.WatchUi;
 
 //! The activity screens: pre-start, the data screen, and the lap banner.
-//! Styled after the built-in activity profiles: black background, fields
-//! separated by thin grey lines, small upper-case labels.
+//! Styled after the built-in activity profiles: white background, black
+//! labels and values, fields separated by orange lines.
 class DataView extends WatchUi.View {
+    // Colors sampled from the built-in Cardio data screen: white background,
+    // black labels and values, orange separator lines.
+    const COLOR_BG = Graphics.COLOR_WHITE;
+    const COLOR_TEXT = Graphics.COLOR_BLACK;
+    const COLOR_SEPARATOR = 0xBF6B3D;
+    // Battery fill in the start banner (sampled: 0,173,0).
+    const COLOR_BATTERY = Graphics.COLOR_DK_GREEN;
+
     private var _s as Dictionary<Symbol, String> = {} as Dictionary<Symbol, String>;
 
     function initialize() {
@@ -37,7 +45,7 @@ class DataView extends WatchUi.View {
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+        dc.setColor(COLOR_TEXT, COLOR_BG);
         dc.clear();
         var m = getModel();
         if (m.state == STATE_READY) {
@@ -69,12 +77,6 @@ class DataView extends WatchUi.View {
         var edge = (h * 0.32).toNumber();
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.fillRectangle(0, 0, w, edge);
-        // On a black data screen the banner edge would be invisible, so
-        // underline it.
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(2);
-        dc.drawLine(0, edge, w, edge);
-        dc.setPenWidth(1);
 
         if (DrawUtil.phase(BANNER_MS, 2) == 0) {
             drawStatus(dc, m, cx, h);
@@ -122,7 +124,7 @@ class DataView extends WatchUi.View {
         dc.fillRectangle(left + bw, top + bh / 4, 3, bh / 2);
         var fill = ((bw - 4) * battery / 100.0).toNumber();
         if (fill > 0) {
-            dc.setColor(battery <= 15 ? Graphics.COLOR_RED : Graphics.COLOR_GREEN, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(battery <= 15 ? Graphics.COLOR_RED : COLOR_BATTERY, Graphics.COLOR_TRANSPARENT);
             dc.fillRectangle(left + 2, top + 2, fill, bh - 4);
         }
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
@@ -147,14 +149,13 @@ class DataView extends WatchUi.View {
         var w = dc.getWidth();
         var h = dc.getHeight();
         var cx = w / 2;
-        var white = Graphics.COLOR_WHITE;
-        var grey = Graphics.COLOR_LT_GRAY;
+        var text = COLOR_TEXT;
 
         // While stopped, the top label reads STOPPED and the timer flashes,
         // as on the built-in activities.
         var paused = m.state == STATE_PAUSED;
         var topLabel = paused ? label(:stopped) : label(:timer);
-        var topLabelColor = paused ? Graphics.COLOR_RED : grey;
+        var topLabelColor = paused ? Graphics.COLOR_RED : text;
         var topValue = DrawUtil.formatDuration(m.timerMs());
         if (paused && DrawUtil.phase(1000, 2) == 1) {
             topValue = "";
@@ -164,8 +165,8 @@ class DataView extends WatchUi.View {
         var y2 = (h * 0.66).toNumber();
         var botBandBottom = (h * 0.85).toNumber();
 
-        // Separator lines
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        // Separator lines (2 px, as on the built-in screen)
+        dc.setColor(COLOR_SEPARATOR, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
         dc.drawLine(0, y1, w, y1);
         dc.drawLine(0, y2, w, y2);
@@ -175,36 +176,22 @@ class DataView extends WatchUi.View {
         // Top: timer
         var topBandTop = (h * 0.15).toNumber();
         DrawUtil.drawField(dc, cx, topLabel, (h * 0.1).toNumber(), topValue,
-            [topBandTop, y1 - 2], DrawUtil.widthAt(dc, topBandTop) - 12, topLabelColor, white);
+            [topBandTop, y1 - 2], DrawUtil.widthAt(dc, topBandTop) - 12, topLabelColor, text);
 
         // Middle: respiration rate
         DrawUtil.drawField(dc, cx, label(:resp), y1 + (h * 0.05).toNumber(),
             DrawUtil.formatRate(m.respRate), [y1 + (h * 0.09).toNumber(), y2 - 2],
-            DrawUtil.widthAt(dc, y1) - 20, grey, white);
+            DrawUtil.widthAt(dc, y1) - 20, text, text);
 
         // Bottom: heart rate | stress (value first, label underneath)
         var botLabelY = (h * 0.9).toNumber();
         var botHalfW = DrawUtil.widthAt(dc, botBandBottom) / 2;
         var hrText = m.hasHeartRate() ? DrawUtil.formatNumber(m.heartRate) : "--";
         DrawUtil.drawField(dc, cx - botHalfW / 2 - 2, label(:hr), botLabelY, hrText,
-            [y2 + 2, botBandBottom], botHalfW - 8, grey, white);
+            [y2 + 2, botBandBottom], botHalfW - 8, text, text);
         var stress = m.stressScore;
         DrawUtil.drawField(dc, cx + botHalfW / 2 + 2, label(:stress), botLabelY,
-            DrawUtil.formatNumber(stress), [y2 + 2, botBandBottom], botHalfW - 8, grey,
-            stress == null ? white : stressColor(stress));
-    }
-
-    //! Stress colored by Garmin's bands: 0-25 rest, 26-50 low,
-    //! 51-75 medium, 76-100 high.
-    private function stressColor(score as Number) as Graphics.ColorType {
-        if (score <= 25) {
-            return Graphics.COLOR_BLUE;
-        } else if (score <= 50) {
-            return Graphics.COLOR_YELLOW;
-        } else if (score <= 75) {
-            return Graphics.COLOR_ORANGE;
-        }
-        return Graphics.COLOR_RED;
+            DrawUtil.formatNumber(stress), [y2 + 2, botBandBottom], botHalfW - 8, text, text);
     }
 
     // ------------------------------------------------------------------
@@ -218,16 +205,15 @@ class DataView extends WatchUi.View {
         var h = dc.getHeight();
         var cx = w / 2;
         var justify = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
-        var white = Graphics.COLOR_WHITE;
-        var grey = Graphics.COLOR_LT_GRAY;
+        var text = COLOR_TEXT;
 
-        dc.setColor(white, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(text, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, (h * 0.15).toNumber(), Graphics.FONT_SMALL,
             label(:lap) + " " + m.lapAlertNumber.format("%d"), justify);
 
         var y1 = (h * 0.24).toNumber();
         var mid = (h * 0.58).toNumber();
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(COLOR_SEPARATOR, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
         dc.drawLine(0, y1, w, y1);
         dc.drawLine(0, mid, w, mid);
@@ -235,11 +221,11 @@ class DataView extends WatchUi.View {
 
         DrawUtil.drawField(dc, cx, label(:lapTime), y1 + (h * 0.05).toNumber(),
             DrawUtil.formatDuration(m.lapAlertTimeMs),
-            [y1 + (h * 0.09).toNumber(), mid - 2], DrawUtil.widthAt(dc, y1) - 20, grey, white);
+            [y1 + (h * 0.09).toNumber(), mid - 2], DrawUtil.widthAt(dc, y1) - 20, text, text);
 
         var bottom = (h * 0.86).toNumber();
         DrawUtil.drawField(dc, cx, label(:totalTime), (h * 0.9).toNumber(),
             DrawUtil.formatDuration(m.lapAlertTotalMs),
-            [mid + 2, bottom], DrawUtil.widthAt(dc, bottom) - 20, grey, white);
+            [mid + 2, bottom], DrawUtil.widthAt(dc, bottom) - 20, text, text);
     }
 }
