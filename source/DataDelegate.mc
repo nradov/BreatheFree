@@ -6,7 +6,7 @@ import Toybox.WatchUi;
 //! activity profiles:
 //!   START/STOP  start the timer / stop it and open the Resume-Save-Discard menu
 //!   BACK/LAP    record a lap while the timer runs (exit before start)
-//!   hold MENU   settings (before start)
+//!   UP or hold MENU  settings (before start)
 class DataDelegate extends WatchUi.BehaviorDelegate {
     function initialize() {
         BehaviorDelegate.initialize();
@@ -90,6 +90,19 @@ class DataDelegate extends WatchUi.BehaviorDelegate {
         if (getModel().state == STATE_READY) {
             SettingsMenu.show();
         }
+        return true;
+    }
+
+    //! UP before start opens the settings, like "Options" on the built-in
+    //! profiles. During an activity UP and DOWN do nothing.
+    function onPreviousPage() as Boolean {
+        if (getModel().state == STATE_READY) {
+            SettingsMenu.show();
+        }
+        return true;
+    }
+
+    function onNextPage() as Boolean {
         return true;
     }
 }

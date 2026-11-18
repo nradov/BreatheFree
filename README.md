@@ -9,13 +9,14 @@ Built for the **Garmin Descent Mk2**, and it runs on about 115 other Garmin watc
 ## Features
 
 - Screens styled like the built-in activity profiles: black background, four data fields, thin grey separator lines and small upper-case labels.
-- **One data screen:** Timer · Breaths · Resp Rate · HR · Stress. Stress is the watch's current stress score (`ActivityMonitor.Info.stressScore`, 0–100, API 5.0.0+), colored by Garmin's rest/low/medium/high bands, and shows `--` on watches without it.
+- **One data screen:** Timer · Resp Rate · HR · Stress. Stress is the watch's current stress score (`ActivityMonitor.Info.stressScore`, 0–100, API 5.0.0+), colored by Garmin's rest/low/medium/high bands, and shows `--` on watches without it.
 - **Laps:** BACK/LAP records a new lap. As on the built-in profiles, a lap banner shows the lap number with the last lap time and the total time, along with a tone and vibration.
 - **Stop menu:** Resume / Save / Discard, like the built-in apps. Discard asks for confirmation.
-- **Summary** after saving: time, breaths, avg resp rate, avg/max HR and laps.
-- **Settings:** hold MENU on the start screen, or use the Connect IQ phone app.
+- **Summary** after saving: time, avg resp rate, avg/max HR and laps.
+- **Start screen** like the built-in profiles: the data screen is already showing, under a black banner that alternates between battery level + heart-rate sensor status (the heart flashes until heart rate is found) and an "▲ Options" hint.
+- **Settings:** press UP (Options) or hold MENU on the start screen, or use the Connect IQ phone app.
   - *Activity Type:* **Breathwork** (default) or **Strength Training**. Use Strength Training for IMT devices such as POWERbreathe.
-- **Garmin Connect data:** a respiration-rate chart, total breaths and avg respiration rate in the summary, and breaths and avg rate per lap in the Laps table. These are FIT developer fields.
+- **Garmin Connect data:** a respiration-rate chart, avg respiration rate in the summary, and avg respiration rate per lap in the Laps table. These are FIT developer fields.
 
 ### How activities are saved
 
@@ -30,21 +31,17 @@ Built for the **Garmin Descent Mk2**, and it runs on about 115 other Garmin watc
 |---|---|---|---|
 | START/STOP | Start | Stop and open the menu | Resume |
 | BACK/LAP | Exit app | **New lap** | Open the menu |
-| Hold MENU | Settings | – | – |
+| UP, or hold MENU | Settings (Options) | – | – |
 
 On touch watches, screen taps and swipe-right are ignored during an activity so it can't be ended by accident. Use the buttons instead.
 
-## How respiration rate and breaths are measured
+## How respiration rate is measured
 
-- **Resp Rate** comes from the watch's own estimate, `Toybox.ActivityMonitor.Info.respirationRate` (API 3.3.0+). On watches that don't provide it, or while it returns no value, BreatheFree falls back to its own estimate (described next).
-- **Breaths** are counted from beat-to-beat heart rate intervals (`Sensor.registerSensorDataListener` with `heartBeatIntervals`). The method relies on *respiratory sinus arrhythmia*: heart rate rises as you inhale and falls as you exhale. `BreathDetector.mc` detrends the instantaneous heart rate and counts one breath on each upswing. Its thresholds and filters adapt to your breathing pace.
-  - While the detector is locked onto a regular rhythm, each detected breath is counted individually.
-  - Otherwise, breaths are counted by integrating the respiration rate over time.
+- **Resp Rate** is the watch's own estimate, `Toybox.ActivityMonitor.Info.respirationRate` (API 3.3.0+). It shows `--` while the watch has no value.
+- **Avg Resp** (in the stop menu, summary and Garmin Connect) is the time-weighted average of that value while the timer is running.
 
 **Limitations**
-- Detection from heart rhythm is most reliable for slow, deliberate breathing, roughly 3–12 breaths per minute. In a synthetic test, counts at 3–10 brpm were within a few percent. Above about 15 brpm there are too few heartbeats per breath, so the count relies more on the watch's rate estimate.
 - Garmin developers have reported on the Connect IQ forum that `respirationRate` can read unusually low (4–5 brpm) during Breathing-type activities. If you see this, try the Strength Training type to compare.
-- A wrist optical sensor works. A chest strap that broadcasts beat intervals (e.g. HRM-Pro) gives cleaner data.
 
 ## Building
 
@@ -77,7 +74,6 @@ resources/
 source/
   BreatheFreeApp.mc          entry point
   ActivityModel.mc           session, sensors, laps, FIT fields
-  BreathDetector.mc          breath detection from heartbeat intervals
   DataView.mc                pre-start, data pages, lap banner
   DataDelegate.mc            buttons, stop menu, discard confirmation
   SettingsMenu.mc            on-watch settings
@@ -90,7 +86,6 @@ source/
 Issues and pull requests are welcome. These would be especially useful:
 - Layout checks on more screen shapes, for example Instinct sub-screens and rectangular Venu Sq screens.
 - Translations.
-- Real-world tuning of `BreathDetector.mc`.
 
 ## License
 

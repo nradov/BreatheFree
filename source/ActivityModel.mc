@@ -28,16 +28,15 @@ const FIT_SUB_SPORT_STRENGTH_TRAINING = 20;
 const FIT_SUB_SPORT_BREATHING = 62; // same as the built-in Breathwork activity
 
 // Developer field ids; must match resources/fit/fitcontributions.xml.
+// (Ids 1 and 3 held breath counts in earlier versions; don't reuse them.)
 const FIELD_RESP_RATE = 0;
-const FIELD_TOTAL_BREATHS = 1;
 const FIELD_AVG_RESP_RATE = 2;
-const FIELD_LAP_BREATHS = 3;
 const FIELD_LAP_RESP_RATE = 4;
 
 // How long the lap banner stays on screen.
 const LAP_ALERT_MS = 4000;
-// Beat intervals older than this are considered lost.
-const BEAT_TIMEOUT_MS = 10000;
+// Averages need at least this much respiration data.
+const MIN_AVERAGE_S = 10.0;
 
 function readActivityType() as Number {
     var value = null;
@@ -68,8 +67,6 @@ class ActivityModel {
     var heartRate as Number or Null = null;
     var respRate as Float or Null = null;
     var stressScore as Number or Null = null;  // 0-100, watch's current stress
-    var breaths as Float = 0.0;       // fractional while counting from a rate estimate
-    var lapBreaths as Float = 0.0;
     var lapNumber as Number = 1;
     var lapStartMs as Number = 0;     // timer time at the start of the current lap
 
@@ -82,21 +79,20 @@ class ActivityModel {
     // Captured when the activity is saved
     var summary as Dictionary or Null = null;
 
-    private var _detector as BreathDetector;
     private var _session as ActivityRecording.Session or Null = null;
     private var _rateField as FitContributor.Field or Null = null;
-    private var _totalField as FitContributor.Field or Null = null;
     private var _avgField as FitContributor.Field or Null = null;
-    private var _lapBreathsField as FitContributor.Field or Null = null;
     private var _lapRateField as FitContributor.Field or Null = null;
     private var _timer as Timer.Timer or Null = null;
-    private var _lastBeatMs as Number = 0;
-    private var _haveBeats as Boolean = false;
     private var _lastTickMs as Number = 0;
-    private var _beatListener as Boolean = false;
+    // Time-weighted respiration rate totals (rate x seconds, seconds) for
+    // the averages, over the whole activity and the current lap.
+    private var _rateSum as Float = 0.0;
+    private var _rateSecs as Float = 0.0;
+    private var _lapRateSum as Float = 0.0;
+    private var _lapRateSecs as Float = 0.0;
 
     function initialize() {
-        _detector = new BreathDetector();
         lapAlertUntil = System.getTimer();  // already expired
         activityType = readActivityType();
     }
@@ -120,17 +116,6 @@ class ActivityModel {
     function startSensors() as Void {
         Sensor.setEnabledSensors([Sensor.SENSOR_HEARTRATE] as Array<Sensor.SensorType>);
         Sensor.enableSensorEvents(method(:onSensorInfo));
-        if (Sensor has :registerSensorDataListener) {
-            try {
-                Sensor.registerSensorDataListener(method(:onSensorData), {
-                    :period => 1,
-                    :heartBeatIntervals => { :enabled => true }
-                });
-                _beatListener = true;
-            } catch (e) {
-                _beatListener = false;
-            }
-        }
         _lastTickMs = System.getTimer();
         var timer = new Timer.Timer();
         timer.start(method(:onTick), 1000, true);
@@ -139,28 +124,6 @@ class ActivityModel {
 
     function onSensorInfo(info as Sensor.Info) as Void {
         heartRate = info.heartRate;
-    }
-
-    function onSensorData(data as Sensor.SensorData) as Void {
-        var hrData = data.heartRateData;
-        if (hrData == null) {
-            return;
-        }
-        var intervals = hrData.heartBeatIntervals;
-        if (intervals == null || intervals.size() == 0) {
-            return;
-        }
-        _lastBeatMs = System.getTimer();
-        _haveBeats = true;
-        for (var i = 0; i < intervals.size(); i++) {
-            var breath = _detector.addBeat(intervals[i]);
-            // Individual breaths are only counted while the detector is
-            // locked onto a regular rhythm; otherwise onTick() counts from
-            // the rate estimate.
-            if (breath && state == STATE_RECORDING && _detector.isLocked()) {
-                addBreaths(1.0);
-            }
-        }
     }
 
     //! The watch's own respiration estimate from
@@ -196,23 +159,17 @@ class ActivityModel {
             dt = 1.0;
         }
 
-        var beatsLive = _haveBeats && (now - _lastBeatMs) < BEAT_TIMEOUT_MS;
-        var locked = beatsLive && _detector.isLocked();
-        var detectedRate = beatsLive ? _detector.getRate() : null;
-        var watchRate = watchRespRate();
-
         // Respiration rate comes from the watch's own estimate
-        // (ActivityMonitor.Info.respirationRate). The beat-interval detector
-        // fills in only on devices or moments where that value is missing.
-        respRate = (watchRate != null) ? watchRate : detectedRate;
+        // (ActivityMonitor.Info.respirationRate).
+        respRate = watchRespRate();
 
         if (state == STATE_RECORDING) {
-            // Breath count: individual breaths while the detector is locked
-            // onto a regular rhythm (counted in onSensorData), otherwise the
-            // respiration rate integrated over time.
             var rate = respRate;
-            if (!locked && rate != null) {
-                addBreaths(rate * dt / 60.0);
+            if (rate != null) {
+                _rateSum += rate * dt;
+                _rateSecs += dt;
+                _lapRateSum += rate * dt;
+                _lapRateSecs += dt;
             }
             var info = Activity.getActivityInfo();
             if (info != null && info.currentHeartRate != null) {
@@ -221,11 +178,6 @@ class ActivityModel {
             updateFitFields();
         }
         WatchUi.requestUpdate();
-    }
-
-    private function addBreaths(count as Float) as Void {
-        breaths += count;
-        lapBreaths += count;
     }
 
     function hasHeartRate() as Boolean {
@@ -248,28 +200,17 @@ class ActivityModel {
         return timerMs() - lapStartMs;
     }
 
-    function breathCount() as Number {
-        return breaths.toNumber();
-    }
-
-    function lapBreathCount() as Number {
-        return lapBreaths.toNumber();
-    }
-
-    //! Average breaths per minute over a span of timer time.
-    private function averageRate(count as Float, ms as Number) as Float or Null {
-        if (ms < 10000) {
-            return null;
-        }
-        return count * 60000.0 / ms;
+    //! Time-weighted average respiration rate, or null with too little data.
+    private function average(sum as Float, secs as Float) as Float or Null {
+        return secs >= MIN_AVERAGE_S ? sum / secs : null;
     }
 
     function averageRespRate() as Float or Null {
-        return averageRate(breaths, timerMs());
+        return average(_rateSum, _rateSecs);
     }
 
     function lapAverageRespRate() as Float or Null {
-        return averageRate(lapBreaths, lapTimeMs());
+        return average(_lapRateSum, _lapRateSecs);
     }
 
     // ------------------------------------------------------------------
@@ -329,7 +270,8 @@ class ActivityModel {
 
         lapNumber += 1;
         lapStartMs = now;
-        lapBreaths = 0.0;
+        _lapRateSum = 0.0;
+        _lapRateSecs = 0.0;
         alert(Attention.TONE_LAP);
     }
 
@@ -343,7 +285,6 @@ class ActivityModel {
         summary = {
             :name => activitySessionName(activityType),
             :timeMs => timerMs(),
-            :breaths => breathCount(),
             :avgRate => averageRespRate(),
             :avgHr => info != null ? info.averageHeartRate : null,
             :maxHr => info != null ? info.maxHeartRate : null,
@@ -381,10 +322,6 @@ class ActivityModel {
         if (_session != null && (state == STATE_RECORDING || state == STATE_PAUSED)) {
             save();
         }
-        if (_beatListener) {
-            Sensor.unregisterSensorDataListener();
-            _beatListener = false;
-        }
         Sensor.enableSensorEvents(null);
     }
 
@@ -395,12 +332,8 @@ class ActivityModel {
     private function createFields(session as ActivityRecording.Session) as Void {
         _rateField = session.createField("resp_rate", FIELD_RESP_RATE, FitContributor.DATA_TYPE_FLOAT,
             { :mesgType => FitContributor.MESG_TYPE_RECORD, :units => "brpm" });
-        _totalField = session.createField("total_breaths", FIELD_TOTAL_BREATHS, FitContributor.DATA_TYPE_UINT16,
-            { :mesgType => FitContributor.MESG_TYPE_SESSION, :units => "breaths" });
         _avgField = session.createField("avg_resp_rate", FIELD_AVG_RESP_RATE, FitContributor.DATA_TYPE_FLOAT,
             { :mesgType => FitContributor.MESG_TYPE_SESSION, :units => "brpm" });
-        _lapBreathsField = session.createField("lap_breaths", FIELD_LAP_BREATHS, FitContributor.DATA_TYPE_UINT16,
-            { :mesgType => FitContributor.MESG_TYPE_LAP, :units => "breaths" });
         _lapRateField = session.createField("lap_resp_rate", FIELD_LAP_RESP_RATE, FitContributor.DATA_TYPE_FLOAT,
             { :mesgType => FitContributor.MESG_TYPE_LAP, :units => "brpm" });
     }
@@ -413,18 +346,10 @@ class ActivityModel {
         if (field != null && rate != null) {
             field.setData(rate);
         }
-        field = _totalField;
-        if (field != null) {
-            field.setData(breathCount());
-        }
         field = _avgField;
         var avg = averageRespRate();
         if (field != null && avg != null) {
             field.setData(avg);
-        }
-        field = _lapBreathsField;
-        if (field != null) {
-            field.setData(lapBreathCount());
         }
         field = _lapRateField;
         var lapAvg = lapAverageRespRate();

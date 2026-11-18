@@ -33,7 +33,6 @@ class SummaryView extends WatchUi.View {
 
         var rows = [
             [str(Rez.Strings.SummaryTime), DrawUtil.formatDuration(s[:timeMs] as Number)],
-            [str(Rez.Strings.SummaryBreaths), DrawUtil.formatNumber(s[:breaths] as Number)],
             [str(Rez.Strings.SummaryAvgResp), DrawUtil.formatRate(s[:avgRate] as Float or Null)],
             [str(Rez.Strings.SummaryAvgHr), DrawUtil.formatNumber(s[:avgHr] as Number or Null)],
             [str(Rez.Strings.SummaryMaxHr), DrawUtil.formatNumber(s[:maxHr] as Number or Null)]

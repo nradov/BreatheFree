@@ -17,7 +17,6 @@ class StopMenuTitle extends WatchUi.Drawable {
         Drawable.initialize({});
         _labels = [
             WatchUi.loadResource(Rez.Strings.LabelTime) as String,
-            WatchUi.loadResource(Rez.Strings.LabelBreaths) as String,
             WatchUi.loadResource(Rez.Strings.LabelAvgResp) as String,
             WatchUi.loadResource(Rez.Strings.LabelHeartRate) as String,
             WatchUi.loadResource(Rez.Strings.LabelCalories) as String
@@ -29,10 +28,8 @@ class StopMenuTitle extends WatchUi.Drawable {
         if (index == 0) {
             return DrawUtil.formatDuration(m.timerMs());
         } else if (index == 1) {
-            return DrawUtil.formatNumber(m.breathCount());
-        } else if (index == 2) {
             return DrawUtil.formatRate(m.averageRespRate());
-        } else if (index == 3) {
+        } else if (index == 2) {
             return m.hasHeartRate() ? DrawUtil.formatNumber(m.heartRate) : "--";
         }
         var info = Activity.getActivityInfo();
