@@ -64,31 +64,35 @@ class DataView extends WatchUi.View {
         var cx = w / 2;
         var justify = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
 
-        // Banner: black area across the top with a curved lower edge.
-        var edge = (h * 0.36).toNumber();
-        var rx = (w * 0.7).toNumber();
+        // Banner: black band across the top with a straight lower edge.
+        // Proportions are measured from the built-in Cardio start screen
+        // (edge at 32% of the height).
+        var edge = (h * 0.32).toNumber();
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
-        dc.fillEllipse(cx, 0, rx, edge);
+        dc.fillRectangle(0, 0, w, edge);
         // On a black data screen the banner edge would be invisible, so
-        // outline it.
+        // underline it.
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
-        dc.drawEllipse(cx, 0, rx, edge);
+        dc.drawLine(0, edge, w, edge);
         dc.setPenWidth(1);
 
         if (DrawUtil.phase(BANNER_MS, 2) == 0) {
             drawStatus(dc, m, cx, h);
         } else {
-            // Up arrow + "Options"
+            // Up arrow + "Options", one line centered at 12% of the height
             var text = label(:options);
-            var font = Graphics.FONT_SMALL;
+            var font = Graphics.FONT_MEDIUM;
             var textW = dc.getTextWidthInPixels(text, font);
-            var size = dc.getFontHeight(font) / 3;
-            var y = (h * 0.2).toNumber();
-            var left = cx - (textW + size * 2 + 4) / 2;
+            var size = (h * 0.035).toNumber();  // arrow half-width
+            if (size < 3) {
+                size = 3;
+            }
+            var y = (h * 0.12).toNumber();
+            var left = cx - (textW + size * 2 + 2) / 2;
             dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            dc.fillPolygon([[left, y + size / 2], [left + size * 2, y + size / 2], [left + size, y - size / 2 - 1]]);
-            dc.drawText(left + size * 2 + 4, y, font, text, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+            dc.fillPolygon([[left, y + size / 2], [left + size * 2, y + size / 2], [left + size, y - size]]);
+            dc.drawText(left + size * 2 + 2, y, font, text, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
         }
     }
 
@@ -100,14 +104,18 @@ class DataView extends WatchUi.View {
         var battery = System.getSystemStats().battery;
         var pct = (battery + 0.5).toNumber();
         var text = pct.format("%d") + "%";
-        var font = Graphics.FONT_XTINY;
+        var font = Graphics.FONT_TINY;
         var textW = dc.getTextWidthInPixels(text, font);
 
-        // Battery icon
-        var bh = dc.getFontHeight(font) / 2 + 2;
-        var bw = bh * 2;
-        var gap = 6;
-        var y = (h * 0.13).toNumber();
+        // Battery icon and percentage on one line centered at 11% of the
+        // height; the icon is about 9% of the width.
+        var bw = (h * 0.086).toNumber();
+        var bh = (h * 0.05).toNumber();
+        if (bh < 6) {
+            bh = 6;
+        }
+        var gap = 5;
+        var y = (h * 0.115).toNumber();
         var left = cx - (bw + 3 + gap + textW) / 2;
         var top = y - bh / 2;
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
@@ -121,12 +129,12 @@ class DataView extends WatchUi.View {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(left + bw + 3 + gap, y, font, text, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
 
-        // Sensor icons
+        // Sensor icons on a second line centered at 21% of the height
         var found = m.hasHeartRate();
         var visible = found || DrawUtil.phase(1000, 2) == 0;
         if (visible) {
-            var size = (h * 0.08).toNumber();
-            DrawUtil.drawHeart(dc, cx, (h * 0.25).toNumber(), size,
+            var size = (h * 0.086).toNumber();
+            DrawUtil.drawHeart(dc, cx, (h * 0.21).toNumber(), size,
                 found ? Graphics.COLOR_WHITE : Graphics.COLOR_LT_GRAY);
         }
     }

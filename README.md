@@ -13,7 +13,7 @@ Built for the **Garmin Descent Mk2**, and it runs on about 115 other Garmin watc
 - **Laps:** BACK/LAP records a new lap. As on the built-in profiles, a lap banner shows the lap number with the last lap time and the total time, along with a tone and vibration.
 - **Stop menu:** Resume / Save / Discard, like the built-in apps. Discard asks for confirmation.
 - **Summary** after saving: time, avg resp rate, avg/max HR and laps.
-- **Start screen** like the built-in profiles: the data screen is already showing, under a black banner that alternates between battery level + heart-rate sensor status (the heart flashes until heart rate is found) and an "▲ Options" hint.
+- **Start screen** like the built-in profiles: the data screen is already showing, under a black banner across the top that alternates between battery level + heart-rate sensor status (the heart flashes until heart rate is found) and an "▲ Options" hint.
 - **Settings:** press UP (Options) or hold MENU on the start screen, or use the Connect IQ phone app.
   - *Activity Type:* **Breathwork** (default) or **Strength Training**. Use Strength Training for IMT devices such as POWERbreathe.
 - **Garmin Connect data:** a respiration-rate chart, avg respiration rate in the summary, and avg respiration rate per lap in the Laps table. These are FIT developer fields.
